@@ -62,6 +62,7 @@ classdef MpcControlBase
                 [sol, solve_status] = mpc.ctrl_opti({x, ref_x, ref_u, d_est});
             else
                 [sol, solve_status] = mpc.ctrl_opti({x, ref_x, ref_u});
+                
             end
             u = sol{1};
             if nargout >= 2, T = linspace(0, mpc.H, ceil(mpc.H/mpc.Ts) + 1); end
