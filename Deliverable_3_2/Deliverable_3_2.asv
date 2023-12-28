@@ -1,0 +1,72 @@
+addpath(fullfile('..', 'src'));
+addpath(fullfile('..', '@Rocket'));
+
+close all
+clear all
+clc
+
+%% TODO: This file should produce all the plots for the deliverable
+
+
+%% General
+Ts = 1/20; % Sample time
+rocket = Rocket(Ts);
+[xs, us] = rocket.trim();
+sys = rocket.linearize(xs, us);
+[sys_x, sys_y, sys_z, sys_roll] = rocket.decompose(sys, xs, us);
+
+% Design MPC controller
+N = 20; % horizon length
+H = N*Ts; % Horizon length in seconds
+
+
+% % Design MPc controller
+% H = 20; % horizon length in seconds
+% mpc_z = MpcControl_z(sys_z,Ts,H)
+
+% % Evaluate once
+% [u_z,T_opt,X_opt,U_opt] = mpc_z.get_u([0;3]); % [vz,z] the starting point
+% U_opt(:,end+1) = NaN;
+% 
+% % might not need this ...
+% % Account for linearizatioin point
+% X_opt = X_opt + xs([9;12]); % because xs is a long vector and we only need vz and z
+% U_opt = U_opt + us([3]); % we only need u_z; u=[delta1 delta2 Pavg Pdiff]
+
+
+% 
+% %pos ref ???
+% %ref z ??
+% 
+% % get the control input
+% % is mpc_z == z??
+% u = mpc_z.get_u(mpc_z,pos_ref)
+% 
+% % showing the reference in plots
+% Tf=10; 
+% x0 = [0;3]; % starting point: [vz,z]
+% [T,X_sub,U_sub] = rocket.simulate_f(sys_z,x0,Tf,@mpc_z.get_u,ref_z);
+% ph = rocket.plotvis_sub(T,X_sub,U_sub,sys_z,xs,us,ref_z);
+
+%% Z controller - plot with negative reference
+
+mpc_z = MpcControl_z(sys_z,Ts,H)
+
+% Get control input
+x_states = [0 0]';
+ref_z = [-4]';
+%mpc, x, ref
+[u_z, T_opt, X_opt, U_opt] = mpc_z.get_u(,x_states,ref_z); % is input correct? testin
+
+% ux = mpc_z.get_u(x_states, z_position_reference) 
+
+% Simulate
+Tf = 10;
+x0_z = [0 0]';
+z_ref = [-4]';
+
+[T, X_sub, U_sub] = rocket.simulate_f(sys_z, x0_z, Tf, @mpc_z.get_u, z_ref);
+
+% Plot
+ph = rocket.plotvis_sub(T, X_sub, U_sub, sys_z, xs, us, z_ref);
+
