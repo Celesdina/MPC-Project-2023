@@ -75,10 +75,16 @@ classdef MpcControl_x < MpcControlBase
             Xf_mpt = sys.LQRSet;
             Qf_mpt = sys.LQRPenalty;
             
-            f1 = figure;
+            tiledlayout(1, 3);
+            nexttile;
             Xf_mpt.projection(1:2).plot();
+            title('terminal set wy and beta');
+            nexttile;
             Xf_mpt.projection(2:3).plot();
-            Xf_mpt.projection(3:4).plot();
+            title('terminal set beta and vx');
+            nexttile;
+            Xf_mpt.projection(3:4).plot();            
+            title('terminal set vx and x');
 
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
             obj = 0;

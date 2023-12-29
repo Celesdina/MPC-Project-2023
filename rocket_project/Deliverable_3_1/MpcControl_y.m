@@ -66,10 +66,6 @@ classdef MpcControl_y < MpcControlBase
                 end
             end
             [Ff,ff] = double(Xf);
-            
-            % Xf.projection(1:2).plot();
-            % Xf.projection(2:3).plot();
-            % Xf.projection(3:4).plot();
 
             % MPT version
             sys = LTISystem('A',mpc.A,'B',mpc.B);
@@ -80,10 +76,18 @@ classdef MpcControl_y < MpcControlBase
             Xf_mpt = sys.LQRSet;
             Qf_mpt = sys.LQRPenalty;
             
-            f3 = figure;
+            fig3 = figure;
+            tiledlayout(1, 3);
+            nexttile;
             Xf_mpt.projection(1:2).plot();
+            title('terminal set wx and alpha');
+            nexttile;
             Xf_mpt.projection(2:3).plot();
-            Xf_mpt.projection(3:4).plot();
+            title('terminal set alpha and vy');
+            nexttile;
+            Xf_mpt.projection(3:4).plot();            
+            title('terminal set vy and y');
+
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
             obj = 0;
             con = (X(:,2) == mpc.A*X(:,1) + mpc.B*U(:,1)) + (M*U(:,1) <= m);
