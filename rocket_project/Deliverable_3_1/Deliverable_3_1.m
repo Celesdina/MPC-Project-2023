@@ -34,12 +34,17 @@ U_opt(:,end+1) = NaN;
 % % Account for linearization point (xs, us)%
 X_opt =  X_opt + xs([2, 5, 7, 10]);
 U_opt = U_opt + us(2);
-%ph = rocket.plotvis_sub(T_opt, X_opt, U_opt, sys_x, xs, us); % Plot as usual
+
+%open loop
+ph = rocket.plotvis_sub(T_opt, X_opt, U_opt, sys_x, xs, us);
+title('open loop x');
+
 
 %closed loop 
 Tf = 10;
 [T, X_sub, U_sub] = rocket.simulate_f(sys_x, [0 0 0 3]', Tf, @mpc_x.get_u, 0);
 ph = rocket.plotvis_sub(T, X_sub, U_sub, sys_x, xs, us);
+title('closed loop x');
 
 
 
@@ -60,9 +65,13 @@ U_opt(:,end+1) = NaN;
 X_opt =  X_opt + xs([1, 4, 8, 11]);
 U_opt = U_opt + us(1);
 
-%ph = rocket.plotvis_sub(T_opt, X_opt, U_opt, sys_x, xs, us); % Plot as usual
+% open loop
+ph = rocket.plotvis_sub(T_opt, X_opt, U_opt, sys_y, xs, us); 
+title('open loop y');
+
 
 %closed loop 
 Tf = 10;
 [T, X_sub, U_sub] = rocket.simulate_f(sys_y, [0 0 0 3]', Tf, @mpc_y.get_u, 0);
 ph = rocket.plotvis_sub(T, X_sub, U_sub, sys_y, xs, us);
+title('closed loop y');

@@ -1,4 +1,4 @@
-classdef MpcControl_x < MpcControlBase
+classdef MpcControl_y < MpcControlBase
     
     methods
         % Design a YALMIP optimizer object that takes a steady-state state
@@ -32,8 +32,9 @@ classdef MpcControl_x < MpcControlBase
             % NOTE: The matrices mpc.A, mpc.B, mpc.C and mpc.D are
             %       the DISCRETE-TIME MODEL of your system
 
-            % subsys 1: sys_x 
-            % states: x_x = (wy, beta, vx, x)       input: u_x = (d2)
+            % subsys 2: sys_y
+            % states: x_y = (wx, alpha, vy, y)      input: u_y = (d1)
+
             % Constraints : 
             % u in U = { u | Mu <= m }
             M = [1;-1]; m = [0.26; 0.26];
@@ -44,9 +45,9 @@ classdef MpcControl_x < MpcControlBase
                 0 0 -1 0; 0 0 0 -1]; 
             f = [100; 0.1745; 100; 100; 100; 0.1745; 100; 100];
             
-            Q = 1 * eye(nx);
-            R = 1 * eye(nu);
-            
+            Q = 10 * eye(4);
+            R = 1;
+
             % Compute LQR controller for unconstrained system
             [K,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
             % MATLAB defines K as -K, so invert its signal
@@ -66,31 +67,14 @@ classdef MpcControl_x < MpcControlBase
             end
             [Ff,ff] = double(Xf);
 
-            % % MPT version
+            % MPT version
             sys = LTISystem('A',mpc.A,'B',mpc.B);
-            sys.x.min = [-100; -0.1745; -100; -100]; 
-            sys.x.max = [100; 0.1745; 100; 100];
-            sys.u.min = [-0.26]; 
-            sys.u.max = [0.26];
-            sys.x.penalty = QuadFunction(Q); 
-            sys.u.penalty = QuadFunction(R);
-
+            sys.x.min = [-100; -0.1745; -100; -100]; sys.x.max = [100; 0.1745; 100; 100];
+            sys.u.min = [-0.26]; sys.u.max = [0.26];
+            sys.x.penalty = QuadFunction(Q); sys.u.penalty = QuadFunction(R);
+            
             Xf_mpt = sys.LQRSet;
             Qf_mpt = sys.LQRPenalty;
-            [Ff,ff] = double(polytope(Xf_mpt));
-
-            % 
-            % tiledlayout(1, 3);
-            % nexttile;
-            % Xf_mpt.projection(1:2).plot();
-            % title('terminal set wy and beta');
-            % nexttile;
-            % Xf_mpt.projection(2:3).plot();
-            % title('terminal set beta and vx');
-            % nexttile;
-            % Xf_mpt.projection(3:4).plot();            
-            % title('terminal set vx and x');
-
 
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
             obj = 0;
@@ -136,7 +120,7 @@ classdef MpcControl_x < MpcControlBase
             % You can use the matrices mpc.A, mpc.B, mpc.C and mpc.D
             obj = 0;
             con = [xs == 0, us == 0];
-
+            
             Q = 10*eye(nx); 
             R = 1;
 
@@ -149,9 +133,8 @@ classdef MpcControl_x < MpcControlBase
             con = con + (H*us <= h);
             
             con = con + (ref == mpc.C*xs); 
-            obj = us'*R*us; % + (mpc.C*xs-ref)'*Q*(mpc.C*xs-ref);  
+            obj = us'*R*us; % + (mpc.C*xs-ref)'*Q*(mpc.C*xs-ref); 
 
-            
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
