@@ -28,7 +28,6 @@ U_opt = U_opt+us([4]);
 ph = rocket.plotvis_sub(T_opt, X_opt, U_opt, sys_roll, xs, us); % Plot as usual
 
 [T, X_sub, U_sub] = rocket.simulate_f(sys_roll, [0;deg2rad(30)], 12, @mpc_roll.get_u, 0);
-
 ph = rocket.plotvis_sub(T, X_sub, U_sub, sys_roll, xs, us);
 
 

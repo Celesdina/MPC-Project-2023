@@ -33,35 +33,39 @@ classdef MpcControl_roll < MpcControlBase
             %       the DISCRETE-TIME MODEL of your system
             
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
+
             Hu = [1;-1]; hu = [20;20]; %Pdiff +-20% 
 
-            obj = 0;
-            con = (X(:,2) == mpc.A*X(:,1)+mpc.B*U(:,1))+(Hu * U(:, 1) <= hu);
-             
-             
             Q=200*eye(nx); 
             R=0.2*eye(nu);
 
             sys = LTISystem('A', mpc.A, 'B', mpc.B);
-            sys.u.min = -20; sys.u.max= 20;
-            sys.x.penalty= QuadFunction(Q); sys.u.penalty=QuadFunction(R);
+            sys.u.min = -20;
+            sys.u.max = 20;
+            sys.x.penalty = QuadFunction(Q);
+            sys.u.penalty = QuadFunction(R);
 
             Xf=sys.LQRSet;
-            Qf=sys.LQRPenalty;
+            %[K,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
+            Qf = sys.LQRPenalty.H;
+            disp(Qf);
             [Ff,ff]=double(polytope(Xf));
 
             figure
-            hold on; grid on;
             plot(polytope(Xf),'r');
 
-
+            obj = 0;
+            con = ((X(:,2)-x_ref) == mpc.A*(X(:,1)-x_ref)+mpc.B*(U(:,1)-u_ref))+(Hu * U(:, 1) <= hu);
+             
             for i = 2:N-1
-                con = con + (X(:,i+1) == mpc.A*X(:,i) + mpc.B*U(:,i));
+                con = con + ((X(:,i+1)-x_ref )== mpc.A*(X(:,i)-x_ref) + mpc.B*(U(:,i)-u_ref));
                 con = con + (Hu*U(:,i) <= hu);
-                obj = obj + X(:,i)'*Q*X(:,i) + U(:,i)'*R*U(:,i);
+                obj = obj + (X(:,i)-x_ref(:,1))'*Q*(X(:,i)-x_ref(:,1)) ...
+                    + (U(:,i)-u_ref(:,1))'*R*(U(:,i)-u_ref(:,1));
             end
-            con = con + (Ff*X(:,N) <= ff);
-            obj = obj + X(:,N)'*Qf*X(:,N);
+            
+            con = con + (Ff*(X(:,N)-x_ref) <= ff);
+            obj = obj + (X(:,N)-x_ref)'*Qf*(X(:,N)-x_ref);
             
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -93,8 +97,12 @@ classdef MpcControl_roll < MpcControlBase
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             % You can use the matrices mpc.A, mpc.B, mpc.C and mpc.D
-            obj = 0;
-            con = [xs == 0, us == 0];
+            Hu = [1;-1]; hu = [20;20]; %Pdiff +-20% 
+
+            % Define constraints
+            con = (xs == mpc.A * xs + mpc.B * us);
+            con = con + (Hu*us(:,1) <= hu); 
+            obj = (mpc.C*xs-ref)'*(mpc.C*xs-ref);
             
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
