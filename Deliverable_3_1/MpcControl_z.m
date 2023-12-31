@@ -51,18 +51,14 @@ classdef MpcControl_z < MpcControlBase
             con = [];
 
             
-            % Input constraints: %Pavg between 50%-80%
+            % Input constraints: 
+            % 50% <= Pavg <= 80%
             Hu = [1;-1];
             hu = [80;50]; 
-            
-            % State constraints:
-            F = [1,1];
-            f = [0,inf];
 
             % Cost matrices 
-            Q = eye(nx)*10; % how quickly do I wanna get there?
-            R = 1; %how nicely do u get there?
-
+            Q = eye(nx)*10;
+            R = 1;
 
             % State constraints
             % -inf <= vz <= inf
@@ -75,39 +71,37 @@ classdef MpcControl_z < MpcControlBase
             % MATLAB defines K as -K, so invert its signal
             K = -K; 
 
-            
-
 
             % compute terminal set with LTI system - MPT version
             sys = LTISystem('A',mpc.A,'B',mpc.B);
-            % sys.x.min = [-inf;inf]; 
-            % sys.x.max = [inf;inf];
-            sys.u.min = [50-56];
-            sys.u.max = [80-56];
+            us_steady_state = 56.6667;
+            sys.u.min = [50-us_steady_state];
+            sys.u.max = [80-us_steady_state];
             sys.x.penalty = QuadFunction(Q);
             sys.u.penalty = QuadFunction(R);
-
-            Xf = sys.LQRSet; % -> terminal set
-            [Ff,ff] = double(polytope(Xf));
-
-            Xf.plot(); % this is ok cause I only have 2D
+            
+            % terminal set
+            Xf_z = sys.LQRSet; 
+            [Ff,ff] = double(polytope(Xf_z));
+            %Xf_z.plot(); 
+            Xf_z.projection(1:2).plot();
+            title("terminal set: z !! ");
 
 
             % Defining the MPC controller
-            con = (X(:,2) == mpc.A * X(:,1) + mpc.B * U(:,1)) + (50 <= (U(:,1)+56.667) <= 80);
+            % first iteration
+            con = (X(:,2) == mpc.A * X(:,1) + mpc.B * U(:,1)) + (50 <= (U(:,1)+us_steady_state) <= 80);
             obj = U(:,1)'*R*U(:,1);
-
+            % iteration 2 to N-1
             for i = 2:(N-1)
                 con = con + (X(:,i+1) == mpc.A*X(:,i) + mpc.B*U(:,i));
                 con = con + (50 <= (U(:,i)+56.667) <= 80) + (F*X(:,i) <= f);
                 obj = obj + X(:,i)'*Q*X(:,i) + U(:,i)'*R*U(:,i);
             end
-
+            % last iteration
             con = con + (Ff*X(:,N) <= ff);
             obj = obj + X(:,N)'*Qf*X(:,N);
 
-            
-           
 
 
             
