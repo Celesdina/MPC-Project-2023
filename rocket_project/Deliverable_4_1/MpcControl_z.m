@@ -48,36 +48,56 @@ classdef MpcControl_z < MpcControlBase
             
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
             obj = 0;
-            % obj: (u-us)' R (u-us)
-            con = [(20 <= U) & (U <= 80)]; % valid range of Pavg: [0.2,0.8]
-            % con = (x(:,2) == A*x(:,1) + B*u(:,1)) + (M*u(:,1) <= m);
-
-            % constraint on Pavg
-            % constraint on z: z >= 0
-            % we actually don't need that here
-
-            % x = sdpvar(2,N,'full');
-            % u = sdpvar(1,N-1,'full');
-            % 
-            % con = (x(:,2) == A*x(:,1) + B*u(:,1)) + (M*u(:,1) <= m);
-            % obj = u(:,1)'*R*u(:,1);
-            % for i = 2:N-1
-            %     con = con + (x(:,i+1) == A*x(:,i) + B*u(:,i));
-            %     con = con + (F*x(:,i) <= f) + (M*u(:,i) <= m);
-            %     obj = obj + x(:,i)'*Q*x(:,i) + u(:,i)'*R*u(:,i);
-            % end
-            % con = con + (Ff*x(:,N) <= ff);
-            % obj = obj + x(:,N)'*Qf*x(:,N);
-    
-
-
-    % Compile the matrices
-    %ctrl = optimizer(con, obj, sdpsettings('solver','sedumi'), x(:,1), u(:,1));
-
-
-
-
+            con = [];
             
+        
+            
+            % Cost matrices 
+            Q = eye(nx);
+            weights = [[2000 0]; [0 2000]]; % might be able to reduce 1000-> 10 
+            Q = weights.*Q;
+
+            R = 1*eye(nu); % should be a 1x1 matrix
+
+            % Compute LQR controller for unconstrained system
+            [K,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
+            % MATLAB idefines K as -K, so invert its signal
+            K = -K; 
+
+            u_ss = 56.667; % steady-state input
+            u_min = 50 - u_ss;
+            u_max = 80 - u_ss;
+
+
+          
+            % Terminal set from exo4
+            sys = LTISystem('A', mpc.A, 'B', mpc.B);
+            sys.u.min = [50-u_ss]; sys.u.max = [80-u_ss];
+            sys.x.penalty = QuadFunction(Q); sys.u.penalty = QuadFunction(R);
+            
+            Xf_mpt = sys.LQRSet;
+            [Ff,ff] = double(polytope(Xf_mpt)); 
+            
+           
+
+            % Defining the MPC controller
+            con = ((X(:,2)-x_ref) == mpc.A * (X(:,1)-x_ref) + mpc.B * (U(:,1)-u_ref));
+            con = con + (u_min <= (U(:,1)-u_ref) <= u_max);
+            obj = (U(:,1)-u_ref)'*R*(U(:,1)-u_ref);
+
+            F = [1 0; 0 1; -1 0; 0 -1]; f = [inf; inf; inf; inf]; % might not be necessary
+
+            for i = 2:(N-1)
+                con = con + ((X(:,i+1)-x_ref) == mpc.A*(X(:,i)-x_ref) + mpc.B*(U(:,i)-u_ref));
+                con = con + (u_min <= (U(:,i)-u_ref) <= u_max); % + (F*(X(:,i)-x_ref) <= (f-F*x_ref));
+                obj = obj + (X(:,i)-x_ref)'*Q*(X(:,i)-x_ref) + (U(:,i)-u_ref)'*R*(U(:,i)-u_ref);
+            end
+
+            con = con + (Ff * (X(:,N)-x_ref) <= ff);
+            obj = obj + (X(:,N)-x_ref)' * Qf * (X(:,N)-x_ref);
+
+       
+                    
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
@@ -101,6 +121,7 @@ classdef MpcControl_z < MpcControlBase
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             nx = size(mpc.A, 1);
+            [nx, nu] = size(mpc.B);
             
             % Steady-state targets
             xs = sdpvar(nx, 1);
@@ -115,14 +136,47 @@ classdef MpcControl_z < MpcControlBase
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             % You can use the matrices mpc.A, mpc.B, mpc.C and mpc.D
-            obj = 0;
-            con = [xs == 0, us == 0];
+
+            % obj = 0;
+            % con = [xs == 0, us == 0];
+
+% -------------- new try -----------------
+            
+            Q = 10*eye(nx); 
+            R = 1* eye(nu);
+
+            
+
+            us_offset = 56.6667;
+            u_min = 50 - us_offset ;
+            u_max = 80 - us_offset ;
+
+            H = [1;-1];
+            h = [80-us_offset;us_offset - 50];
+
+            % Constraints and object at first time step
+            con = (xs == mpc.A*xs + mpc.B*us);
+            con = con +  (u_min <= us <= u_max);
+            %con = con + (H*us <= h);
+            
+            con = con + (ref == mpc.C*xs); 
+            obj = us'*R*us + trace((mpc.C*xs-ref)'*Q*(mpc.C*xs-ref)); 
+
+            % % Constraints and object at first time step
+            % con = (xs == mpc.A*xs + mpc.B*us);
+            % con = con +  (u_min <= us<= (u_max));
+            % obj = (mpc.C*xs-ref)'*Q*(mpc.C*xs-ref);
+
+           
+
+% ----------------------------------------------------------------------
             
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             % Compute the steady-state target
             target_opti = optimizer(con, obj, sdpsettings('solver', 'gurobi'), {ref, d_est}, {xs, us});
+           
         end
         
         

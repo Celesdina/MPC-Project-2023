@@ -48,32 +48,60 @@ classdef MpcControl_z < MpcControlBase
             
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
             obj = 0;
-            % obj: (u-us)' R (u-us)
-            con = [(20 <= U) & (U <= 80)]; % valid range of Pavg: [0.2,0.8]
-            % con = (x(:,2) == A*x(:,1) + B*u(:,1)) + (M*u(:,1) <= m);
+            con = [];
 
-            % constraint on Pavg
-            % constraint on z: z >= 0
-            % we actually don't need that here
+            
+            % Input constraints: 
+            % 50% <= Pavg <= 80%
+            Hu = [1;-1];
+            hu = [80;50]; 
 
-            % x = sdpvar(2,N,'full');
-            % u = sdpvar(1,N-1,'full');
-            % 
-            % con = (x(:,2) == A*x(:,1) + B*u(:,1)) + (M*u(:,1) <= m);
-            % obj = u(:,1)'*R*u(:,1);
-            % for i = 2:N-1
-            %     con = con + (x(:,i+1) == A*x(:,i) + B*u(:,i));
-            %     con = con + (F*x(:,i) <= f) + (M*u(:,i) <= m);
-            %     obj = obj + x(:,i)'*Q*x(:,i) + u(:,i)'*R*u(:,i);
-            % end
-            % con = con + (Ff*x(:,N) <= ff);
-            % obj = obj + x(:,N)'*Qf*x(:,N);
-    
+            % Cost matrices 
+            Q = eye(nx)*500; %*10
+            R = 1;
+
+            % State constraints
+            % -inf <= vz <= inf
+            % -inf <= z <= inf
+            F = [1 0; 0 1; -1 0; 0 -1]; f = [inf; inf; inf; inf];
 
 
-    % Compile the matrices
-    %ctrl = optimizer(con, obj, sdpsettings('solver','sedumi'), x(:,1), u(:,1));
+            % Compute LQR controller for unconstrained system
+            [K,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
+            % MATLAB defines K as -K, so invert its signal
+            K = -K; 
 
+
+            % compute terminal set with LTI system - MPT version
+            sys = LTISystem('A',mpc.A,'B',mpc.B);
+            us_steady_state = 56.6667;
+            sys.u.min = [50-us_steady_state];
+            sys.u.max = [80-us_steady_state];
+            sys.x.penalty = QuadFunction(Q);
+            sys.u.penalty = QuadFunction(R);
+            
+            % terminal set
+            Xf_z = sys.LQRSet; 
+            [Ff,ff] = double(polytope(Xf_z));
+            %Xf_z.plot(); 
+            Xf_z.projection(1:2).plot();
+            title("terminal set: z !! ");
+
+
+
+            % Defining the MPC controller
+            % first iteration
+            con = (X(:,2) == mpc.A * X(:,1) + mpc.B * U(:,1)) + (50 <= (U(:,1)+us_steady_state) <= 80);
+            obj = U(:,1)'*R*U(:,1);
+            % iteration 2 to N-1
+            for i = 2:(N-1)
+                con = con + (X(:,i+1) == mpc.A*X(:,i) + mpc.B*U(:,i));
+                con = con + (50 <= (U(:,i)+56.667) <= 80) + (F*X(:,i) <= f);
+                obj = obj + X(:,i)'*Q*X(:,i) + U(:,i)'*R*U(:,i);
+            end
+            % last iteration
+            con = con + (Ff*X(:,N) <= ff);
+            obj = obj + X(:,N)'*Qf*X(:,N);
 
 
 
