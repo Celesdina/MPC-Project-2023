@@ -68,12 +68,12 @@ classdef MpcControl_z < MpcControlBase
 
           
             % Terminal set from exo4
-            % sys = LTISystem('A', mpc.A, 'B', mpc.B);
-            % sys.u.min = [50-u_ss]; sys.u.max = [80-u_ss];
-            % sys.x.penalty = QuadFunction(Q); sys.u.penalty = QuadFunction(R);
-            % 
-            % Xf_mpt = sys.LQRSet;
-            % [Ff,ff] = double(polytope(Xf_mpt)); 
+            sys = LTISystem('A', mpc.A, 'B', mpc.B);
+            sys.u.min = [50-u_ss]; sys.u.max = [80-u_ss];
+            sys.x.penalty = QuadFunction(Q); sys.u.penalty = QuadFunction(R);
+
+            Xf_mpt = sys.LQRSet;
+            [Ff,ff] = double(polytope(Xf_mpt)); 
             
            
 
@@ -90,7 +90,7 @@ classdef MpcControl_z < MpcControlBase
                 obj = obj + (X(:,i)-x_ref)'*Q*(X(:,i)-x_ref) + (U(:,i)-u_ref)'*R*(U(:,i)-u_ref);
             end
 
-            %con = con + (Ff * (X(:,N)-x_ref) <= ff);
+            con = con + (Ff * (X(:,N)-x_ref) <= ff);
             obj = obj + (X(:,N)-x_ref)' * Q * (X(:,N)-x_ref);
 
        
@@ -202,7 +202,7 @@ classdef MpcControl_z < MpcControlBase
 
 
           
-            L = -place(A_bar',C_bar',[-0.1, 0.2, 0.3])';
+            L = -place(A_bar',C_bar',[0.4, 0.5, 0.6])';
 
             
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE

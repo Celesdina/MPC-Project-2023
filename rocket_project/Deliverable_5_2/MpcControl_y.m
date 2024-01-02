@@ -52,33 +52,33 @@ classdef MpcControl_y < MpcControlBase
             Q = weights.*Q;
             R = 1;
 
-            % Compute LQR controller for unconstrained system
-            [K,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
-            % MATLAB defines K as -K, so invert its signal
-            K = -K; 
-            
-            % Compute maximal invariant set
-            Xf = polytope([F;M*K],[f;m]);
-            Acl = [mpc.A+mpc.B*K];
-            while 1
-                prevXf = Xf;
-                [T,t] = double(Xf);
-                preXf = polytope(T*Acl,t);
-                Xf = intersect(Xf, preXf);
-                if isequal(prevXf, Xf)
-                    break
-                end
-            end
-            [Ff,ff] = double(Xf);
-
-            % MPT version
-            sys = LTISystem('A',mpc.A,'B',mpc.B);
-            sys.x.min = [-100; -0.1745; -100; -100]; sys.x.max = [100; 0.1745; 100; 100];
-            sys.u.min = [-0.26]; sys.u.max = [0.26];
-            sys.x.penalty = QuadFunction(Q); sys.u.penalty = QuadFunction(R);
-            
-            Xf_mpt = sys.LQRSet;
-            Qf_mpt = sys.LQRPenalty;
+            % % Compute LQR controller for unconstrained system
+            % [K,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
+            % % MATLAB defines K as -K, so invert its signal
+            % K = -K; 
+            % 
+            % % Compute maximal invariant set
+            % Xf = polytope([F;M*K],[f;m]);
+            % Acl = [mpc.A+mpc.B*K];
+            % while 1
+            %     prevXf = Xf;
+            %     [T,t] = double(Xf);
+            %     preXf = polytope(T*Acl,t);
+            %     Xf = intersect(Xf, preXf);
+            %     if isequal(prevXf, Xf)
+            %         break
+            %     end
+            % end
+            % [Ff,ff] = double(Xf);
+            % 
+            % % MPT version
+            % sys = LTISystem('A',mpc.A,'B',mpc.B);
+            % sys.x.min = [-100; -0.1745; -100; -100]; sys.x.max = [100; 0.1745; 100; 100];
+            % sys.u.min = [-0.26]; sys.u.max = [0.26];
+            % sys.x.penalty = QuadFunction(Q); sys.u.penalty = QuadFunction(R);
+            % 
+            % Xf_mpt = sys.LQRSet;
+            % Qf_mpt = sys.LQRPenalty;
 
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
             obj = 0;
@@ -89,8 +89,8 @@ classdef MpcControl_y < MpcControlBase
                 con = con + (F*(X(:,i)-x_ref) <= f) + (M*(U(:,i)-u_ref) <= m); 
                 obj = obj + (X(:,i)-x_ref)'*Q*(X(:,i)-x_ref) + (U(:,i))'*R*(U(:,i)-u_ref);
             end
-            con = con + (Ff*(X(:,N)-x_ref) <= ff);    
-            obj = obj + (X(:,N)-x_ref)'*Qf*(X(:,N)-x_ref);
+            %con = con + (Ff*(X(:,N)-x_ref) <= ff);    
+            obj = obj + (X(:,N)-x_ref)'*Q*(X(:,N)-x_ref);
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             

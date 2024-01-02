@@ -1,7 +1,7 @@
 addpath(fullfile('..', 'src'));
 
 %close all
-%clear all
+clear all
 %clc
 
 %% TODO: This file should produce all the plots for the deliverable
@@ -42,6 +42,7 @@ ph.fig.Name = 'Without offset-free tracking';
 [T, X, U, Ref, Z_hat] = rocket.simulate_est_z(x0, Tf, @mpc.get_u, ref, mpc_z, sys_z);
 ph = rocket.plotvis(T,X,U,Ref);
 ph.fig.Name = 'With offset-free tracking';
+
 
 
 

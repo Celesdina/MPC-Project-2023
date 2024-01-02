@@ -1,6 +1,6 @@
 addpath(fullfile('..', 'src'));
 
-close all
+%close all
 clear all
 %clc
 
@@ -32,12 +32,12 @@ rocket.mass=2.13;
 rocket.mass_rate= -0.27;
 
 % Simulate
-Tf = 8;
+Tf = 10;
 
-% closed-loop plot
-[T,X,U,Ref] = rocket.simulate(x0,Tf,@mpc.get_u,ref);
-ph = rocket.plotvis(T,X,U,Ref);
-ph.fig.Name = 'Without offset-free tracking';
+% % closed-loop plot
+% [T,X,U,Ref] = rocket.simulate(x0,Tf,@mpc.get_u,ref);
+% ph = rocket.plotvis(T,X,U,Ref);
+% ph.fig.Name = 'Without offset-free tracking';
 
 [T, X, U, Ref, Z_hat] = rocket.simulate_est_z(x0, Tf, @mpc.get_u, ref, mpc_z, sys_z);
 ph = rocket.plotvis(T,X,U,Ref);

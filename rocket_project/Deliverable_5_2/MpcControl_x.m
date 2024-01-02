@@ -50,37 +50,37 @@ classdef MpcControl_x < MpcControlBase
             Q = weights.*Q;
             R = 1 * eye(nu);
             
-            % Compute LQR controller for unconstrained system
-            [K,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
-            % MATLAB defines K as -K, so invert its signal
-            K = -K; 
+            % % Compute LQR controller for unconstrained system
+            % [K,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
+            % % MATLAB defines K as -K, so invert its signal
+            % K = -K; 
             
-            % Compute maximal invariant set
-            Xf = polytope([F;M*K],[f;m]);
-            Acl = [mpc.A+mpc.B*K];
-            while 1
-                prevXf = Xf;
-                [T,t] = double(Xf);
-                preXf = polytope(T*Acl,t);
-                Xf = intersect(Xf, preXf);
-                if isequal(prevXf, Xf)
-                    break
-                end
-            end
-            [Ff,ff] = double(Xf);
-
-            % Terminal set and penalty (MPT toolbox)
-            syss = LTISystem('A',mpc.A,'B',mpc.B);
-            syss.x.min = [-100; -0.1745; -100; -100]; 
-            syss.x.max = [100; 0.1745; 100; 100];
-            syss.u.min = [-0.26]; 
-            syss.u.max = [0.26];
-            syss.x.penalty = QuadFunction(Q); 
-            syss.u.penalty = QuadFunction(R);
-
-            Xf_mpt = syss.LQRSet;
-            Qf_mpt = syss.LQRPenalty;
-            [Ff,ff] = double(polytope(Xf_mpt));
+            % % Compute maximal invariant set
+            % Xf = polytope([F;M*K],[f;m]);
+            % Acl = [mpc.A+mpc.B*K];
+            % while 1
+            %     prevXf = Xf;
+            %     [T,t] = double(Xf);
+            %     preXf = polytope(T*Acl,t);
+            %     Xf = intersect(Xf, preXf);
+            %     if isequal(prevXf, Xf)
+            %         break
+            %     end
+            % end
+            % [Ff,ff] = double(Xf);
+            % 
+            % % Terminal set and penalty (MPT toolbox)
+            % syss = LTISystem('A',mpc.A,'B',mpc.B);
+            % syss.x.min = [-100; -0.1745; -100; -100]; 
+            % syss.x.max = [100; 0.1745; 100; 100];
+            % syss.u.min = [-0.26]; 
+            % syss.u.max = [0.26];
+            % syss.x.penalty = QuadFunction(Q); 
+            % syss.u.penalty = QuadFunction(R);
+            % 
+            % Xf_mpt = syss.LQRSet;
+            % Qf_mpt = syss.LQRPenalty;
+            % [Ff,ff] = double(polytope(Xf_mpt));
 
             % 
             % tiledlayout(1, 3);
@@ -113,8 +113,8 @@ classdef MpcControl_x < MpcControlBase
                 con = con + (F*(X(:,i)-x_ref) <= f) + (M*(U(:,i)-u_ref) <= m); 
                 obj = obj + (X(:,i)-x_ref)'*Q*(X(:,i)-x_ref) + (U(:,i)-u_ref)'*R*(U(:,i)-u_ref) + trace(rho);
             end
-            con = con + (Ff*(X(:,N)-x_ref) <= ff);    
-            obj = obj + (X(:,N)-x_ref)'*Qf*(X(:,N)-x_ref);
+            %con = con + (Ff*(X(:,N)-x_ref) <= ff);    
+            obj = obj + (X(:,N)-x_ref)'*Q*(X(:,N)-x_ref);
 
 
             
