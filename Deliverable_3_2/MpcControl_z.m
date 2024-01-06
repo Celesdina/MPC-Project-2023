@@ -50,53 +50,43 @@ classdef MpcControl_z < MpcControlBase
             obj = 0;
             con = [];
             
-            disp('in controller setup')
-            
+                        
             % Cost matrices 
             Q = eye(nx)*10;
-            R = 1* eye(nu); % should be a 1x1 matrix
+            R = 1* eye(nu); 
 
-            % Compute LQR controller for unconstrained system
-            [K,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
-            % MATLAB idefines K as -K, so invert its signal
-            K = -K; 
-
+            
             u_ss = 56.667; % steady-state input
             u_min = 50 - u_ss;
             u_max = 80 - u_ss;
 
 
-            disp('before terminal set')
-            % Terminal set from exo4
+            % compute terminal set with LTI system - MPT version
             sys = LTISystem('A', mpc.A, 'B', mpc.B);
-            sys.u.min = [50-u_ss]; sys.u.max = [80-u_ss];
-            sys.x.penalty = QuadFunction(Q); sys.u.penalty = QuadFunction(R);
+            sys.u.min = [50-u_ss]; 
+            sys.u.max = [80-u_ss];
+            sys.x.penalty = QuadFunction(Q); 
+            sys.u.penalty = QuadFunction(R);
             
-            Xf_mpt = sys.LQRSet;
-            [Ff,ff] = double(polytope(Xf_mpt)); % doesn't work without polytope ...
-            
-            disp('after terminal set')
+            Xf = sys.LQRSet;
+            [Ff,ff]=double(polytope(Xf));
+
+            % Compute terminal weight Qf
+            [~,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
 
             % Defining the MPC controller
             con = ((X(:,2)-x_ref) == mpc.A * (X(:,1)-x_ref) + mpc.B * (U(:,1)-u_ref));
             con = con + (u_min <= (U(:,1)-u_ref) <= u_max);
-            obj = (U(:,1)-u_ref)'*R*(U(:,1)-u_ref);
-
-            F = [1 0; 0 1; -1 0; 0 -1]; f = [inf; inf; inf; inf]; % might not be necessary
+            obj = (U(:,1)-u_ref)'*R*(U(:,1)-u_ref) + (X(:,1)-u_ref)'*Q*(X(:,1)-u_ref);
 
             for i = 2:(N-1)
                 con = con + ((X(:,i+1)-x_ref) == mpc.A*(X(:,i)-x_ref) + mpc.B*(U(:,i)-u_ref));
-                con = con + (u_min <= (U(:,i)-u_ref) <= u_max); % + (F*(X(:,i)-x_ref) <= (f-F*x_ref));
+                con = con + (u_min <= (U(:,i)-u_ref) <= u_max); 
                 obj = obj + (X(:,i)-x_ref)'*Q*(X(:,i)-x_ref) + (U(:,i)-u_ref)'*R*(U(:,i)-u_ref);
             end
+            obj = obj + (X(:,N)-x_ref)' *Qf* (X(:,N)-x_ref);
+            
 
-            con = con + (Ff * (X(:,N)-x_ref) <= ff);
-            obj = obj + (X(:,N)-x_ref)' * Qf * (X(:,N)-x_ref);
-
-          
-
-
-            disp('after MPC controller')
                     
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -140,38 +130,26 @@ classdef MpcControl_z < MpcControlBase
             % obj = 0;
             % con = [xs == 0, us == 0];
 
-% -------------- new try -----------------
-            disp('in steady state target')
-            Q = 10*eye(nx); 
-            R = 1* eye(nu);
-
+            Q = eye(1); 
             
-
-            us_offset = 56.6667;
-            u_min = 50 - us_offset ;
-            u_max = 80 - us_offset ;
-
             H = [1;-1];
+            us_offset = 56.6667;
             h = [80-us_offset;us_offset - 50];
 
             % Constraints and object at first time step
             con = (xs == mpc.A*xs + mpc.B*us);
-            %con = con +  (u_min <= us <= u_max);
             con = con + (H*us <= h);
-            
-            con = con + (ref == mpc.C*xs); 
-            obj = us'*R*us; % + (mpc.C*xs-ref)'*Q*(mpc.C*xs-ref);  
+            obj = (mpc.C*xs-ref)'*Q*(mpc.C*xs-ref);  
 
-            disp('end steady state target')
+ 
 
-% ----------------------------------------------------------------------
+
             
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             
             % Compute the steady-state target
             target_opti = optimizer(con, obj, sdpsettings('solver', 'gurobi'), {ref, d_est}, {xs, us});
-            disp('after computing target_opti')
         end
         
         
