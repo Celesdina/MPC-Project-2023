@@ -52,17 +52,6 @@ classdef MpcControl_y < MpcControlBase
             R = 150 * eye(nu);
 
 
-            % MPT version
-            sys = LTISystem('A',mpc.A,'B',mpc.B);
-            sys.x.min = [-100; -0.1745; -100; -100]; 
-            sys.x.max = [100; 0.1745; 100; 100];
-            sys.u.min = [-0.26]; 
-            sys.u.max = [0.26];
-            sys.x.penalty = QuadFunction(Q); 
-            sys.u.penalty = QuadFunction(R);
-            
-            Xf = sys.LQRSet;
-            [Ff,ff]=double(polytope(Xf));
 
             % Compute terminal weight Qf
             [~,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
