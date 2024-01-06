@@ -61,16 +61,6 @@ classdef MpcControl_z < MpcControlBase
             u_max = 80 - u_ss;
 
 
-            % compute terminal set with LTI system - MPT version
-            sys = LTISystem('A', mpc.A, 'B', mpc.B);
-            sys.u.min = [50-u_ss]; 
-            sys.u.max = [80-u_ss];
-            sys.x.penalty = QuadFunction(Q); 
-            sys.u.penalty = QuadFunction(R);
-            
-            Xf = sys.LQRSet;
-            [Ff,ff]=double(polytope(Xf));
-
             % Compute terminal weight Qf
             [~,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
 

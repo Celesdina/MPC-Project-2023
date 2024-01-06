@@ -36,18 +36,9 @@ classdef MpcControl_roll < MpcControlBase
 
             Hu = [1;-1]; hu = [20;20]; %Pdiff +-20% 
 
-            % Cost matrices
+            % Tuning matrices
             Q=200*eye(nx); 
             R=0.2*eye(nu);
-
-            syss = LTISystem('A', mpc.A, 'B', mpc.B);
-            syss.u.min = -20;
-            syss.u.max = 20;
-            syss.x.penalty = QuadFunction(Q);
-            syss.u.penalty = QuadFunction(R);
-
-            Xf=syss.LQRSet;
-            [Ff,ff]=double(polytope(Xf));
 
             % Compute terminal weight Qf
             [~,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
