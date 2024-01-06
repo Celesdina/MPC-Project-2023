@@ -28,11 +28,8 @@ classdef MpcControl_roll < MpcControlBase
             
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
-            
-            % NOTE: The matrices mpc.A, mpc.B, mpc.C and mpc.D are
-            %       the DISCRETE-TIME MODEL of your system
-            
-            % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
+                        
+            % State constraints 
             %Pdiff +-20% 
             Hu = [1;-1]; hu = [20;20]; 
             
@@ -52,9 +49,10 @@ classdef MpcControl_roll < MpcControlBase
             figure
             hold on; grid on;
             plot(polytope(Xf),'r');
+            title("terminal set: roll");
             
-            % constraints
-            obj = U(:,1)'*R*U(:,1);
+            % constraints and objectives
+            obj = U(:,1)'*R*U(:,1) + X(:,1)'*Q*X(:,1);
             con = (X(:,2) == mpc.A*X(:,1)+mpc.B*U(:,1))+(Hu * U(:, 1) <= hu);
             for i = 2:N-1
                 con = con + (X(:,i+1) == mpc.A*X(:,i) + mpc.B*U(:,i));

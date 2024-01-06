@@ -35,9 +35,11 @@ classdef MpcControl_y < MpcControlBase
             % subsys 2: sys_y
             % states: x_y = (wx, alpha, vy, y)      input: u_y = (d1)
 
-            % Constraints : 
+            % Input Constraints : 
             % u in U = { u | Mu <= m }
             M = [1;-1]; m = [0.26; 0.26];
+
+            % Output constraints:
             % x in X = { x | Fx <= f }
             F = [1 0 0 0; 0 1 0 0; 
                 0 0 1 0; 0 0 0 1;
@@ -45,52 +47,38 @@ classdef MpcControl_y < MpcControlBase
                 0 0 -1 0; 0 0 0 -1]; 
             f = [100; 0.1745; 100; 100; 100; 0.1745; 100; 100];
             
-            Q = 10 * eye(4);
-            R = 1;
+            % Tuning
+            Q = eye(nx); 
+            R = 150*eye(nu);
 
-            % Compute LQR controller for unconstrained system
-            [K,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
-            % MATLAB defines K as -K, so invert its signal
-            K = -K; 
-            
-            % Compute maximal invariant set
-            Xf = polytope([F;M*K],[f;m]);
-            Acl = [mpc.A+mpc.B*K];
-            while 1
-                prevXf = Xf;
-                [T,t] = double(Xf);
-                preXf = polytope(T*Acl,t);
-                Xf = intersect(Xf, preXf);
-                if isequal(prevXf, Xf)
-                    break
-                end
-            end
-            [Ff,ff] = double(Xf);
-
-            % MPT version
+                      
+            % LQR
             sys = LTISystem('A',mpc.A,'B',mpc.B);
             sys.x.min = [-100; -0.1745; -100; -100]; sys.x.max = [100; 0.1745; 100; 100];
             sys.u.min = [-0.26]; sys.u.max = [0.26];
             sys.x.penalty = QuadFunction(Q); sys.u.penalty = QuadFunction(R);
             
-            Xf_mpt = sys.LQRSet;
-            Qf_mpt = sys.LQRPenalty;
-            
-            fig3 = figure;
+            Xf = sys.LQRSet;
+            Qf = sys.LQRPenalty.H;
+            [Ff,ff]=double(polytope(Xf));
+
+            % Plot terminal sets
+            figure;
             tiledlayout(1, 3);
             nexttile;
-            Xf_mpt.projection(1:2).plot();
+            Xf.projection(1:2).plot();
             title('terminal set wx and alpha');
             nexttile;
-            Xf_mpt.projection(2:3).plot();
+            Xf.projection(2:3).plot();
             title('terminal set alpha and vy');
             nexttile;
-            Xf_mpt.projection(3:4).plot();            
+            Xf.projection(3:4).plot();            
             title('terminal set vy and y');
 
-            % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
-            obj = 0;
-            con = (X(:,2) == mpc.A*X(:,1) + mpc.B*U(:,1)) + (M*U(:,1) <= m);
+            % Constraints and objectives
+            obj = U(:,1)'*R*U(:,1) + X(:,1)'*Q*X(:,1);
+            con = (X(:,2) == mpc.A*X(:,1) + mpc.B*U(:,1)) ...
+                + (M*U(:,1) <= m) + (F*X(:,1) <= f);
 
             for i = 2:N-1
                 con = con + (X(:,i+1) == mpc.A*X(:,i) + mpc.B*U(:,i));

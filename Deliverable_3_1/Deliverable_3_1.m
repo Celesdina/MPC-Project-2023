@@ -6,7 +6,7 @@ clear all
 clc
 
 %% trim and decompose into 4 sub-systems
-Ts = 1/20; % JUSTIFY !!!!!!!!!
+Ts = 1/20; % sample time
 rocket = Rocket(Ts);
 [xs,us] = rocket.trim();
 sys = rocket.linearize(xs,us);
@@ -17,10 +17,9 @@ sys = rocket.linearize(xs,us);
 
 %% Deliverable 3.1 - x controller
 
-% subsys 1: sys_x 
 % states: x_x = (wy, beta, vx, x)       input: u_x = (d2)
 
-H_x = 10; % Horizon length in seconds % i chose 20 with balck magic
+H_x = 30; % Horizon length in seconds 
 mpc_x = MpcControl_x(sys_x, Ts, H_x);
 % Get control input ( x is the index of the subsystem here)
 u_x = mpc_x.get_u([0 0 0 3]');
@@ -48,9 +47,8 @@ title('closed-loop: x');
 
 %% Deliverable 3.1 - y controller
 
-% subsys 2: sys_y
 % states: x_y = (wx, alpha, vy, y)      input: u_y = (d1)
-H_y = 10; % Horizon length in seconds % i chose 10 with balck magic
+H_y = 30; % Horizon length in seconds 
 mpc_y = MpcControl_y(sys_y, Ts, H_y);
 % Get control input ( x is the index of the subsystem here)
 u_y = mpc_y.get_u([0 0 0 3]');
@@ -79,8 +77,7 @@ title('closed-loop: y');
 %% Deliverable 3.1 - z controller
 
 % Design MPc controller
-% justify horizon length -> there's sth in the cours !!!!!!!!!
-H_z = 20; % horizon length in seconds
+H_z = 30; % horizon length in seconds
 mpc_z = MpcControl_z(sys_z,Ts,H_z); 
 
 % Evaluate once
@@ -96,7 +93,7 @@ plot_open_loop_z = rocket.plotvis_sub(T_opt_z,X_opt_z,U_opt_z,sys_z,xs,us);
 title("plot open-loop: z")
 
 % calculate and plot closed loop trajectory
-Tf_z=10; % TODO: justify !!!!!!!
+Tf_z=10; 
 x0_z = [0;3]; % starting point: [vz,z]
 [T_z, X_sub_z, U_sub_z] = rocket.simulate_f(sys_z,x0_z,Tf_z,@mpc_z.get_u,0);
 plot_closed_loop_z = rocket.plotvis_sub(T_z,X_sub_z,U_sub_z,sys_z,xs,us);
@@ -120,7 +117,7 @@ X_opt_roll = X_opt_roll+xs([3,6]);
 U_opt_roll = U_opt_roll+us([4]);
 
 % open-loop plot
-plot_open_loop_roll = rocket.plotvis_sub(T_opt_roll, X_opt_roll, U_opt_roll, sys_roll, xs, us); % Plot as usual
+plot_open_loop_roll = rocket.plotvis_sub(T_opt_roll, X_opt_roll, U_opt_roll, sys_roll, xs, us); 
 title("open-loop: roll");
 
 % closed-loop plot
