@@ -52,41 +52,57 @@ classdef NmpcControl < handle
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
 
             % whole sys: x+ = Ax+Bu     y = Cx + Du  |D is zeros, C is eye
-            % 2 referentials the world ()w and body ()b
             % states: x = (w, phi, v, p) 
-            % = ((wx,wy,wz)b, (alpha, beta, gamma)w, (vx,vy,vz)w, (x,y,z)w)
-            % input: u = (d1, d2, Pavg, Pdiff)      |(d1)b, (d2)b
-
+            % = ((wx,wy,wz), (alpha, beta, gamma), (vx,vy,vz), (x,y,z))
+            % input: u = (d1, d2, Pavg, Pdiff) 
+                       
+            h = rocket.Ts;
+            f = @(x,u) rocket.f(x,u);
+            f_discrete = @(x,u) RK4(x,u,h,f);
+            
             % constraints: 
             % states: |beta| <= 75°,  |gamma| <= 15° (later 50°)
             % input: |d1| <= 15°, |d2|<= 15°
+            % 50% <= Pavg <= 80%, |Pdiff| <= 20%
+
             ubx(5) = [deg2rad(75)];
             lbx(5) = -[deg2rad(75)];
-            % 50% <= Pavg <= 80%, |Pdiff| <= 20%
+            
             ubu = [deg2rad(15); deg2rad(15); 80; 20];
             lbu = [-deg2rad(15); -deg2rad(15); 50; -20];
-
+            
             %cost weights 
-            Q = diag([100 100 100 100]);
-            R = diag([1 1 1 1]);
+            Q = diag([200 200 500 200]');
+            R = eye(nu);
 
             % ref = [x, y, z, roll] |roll = gamma
-            X_ref = X_sym([10:12 6], :) - ref_sym;
+            X_symref = X_sym([10:12 6],:);
+
             % Cost
-            cost = sum(sum(X_ref' * Q * X_ref, 1),2) + ...
-                sum(sum(U_sym' * R * U_sym, 1), 2);
+            cost = 0;
+            for i=1:N-1
+                cost =  cost + (X_symref(:,i)-ref_sym)' * Q * (X_symref(:,i)-ref_sym)+ ...
+                     U_sym(:,i)' * R * U_sym(:,i);
+            end
+            cost = cost + (X_sym([10:12 6],N)-ref_sym)' * Q * (X_sym([10:12 6],N)-ref_sym);
             
+
             % Equality constraints (Casadi SX), each entry == 0
-            eq_constr = [ ;  ]; % there are none?
-            
+            eq_constr = vertcat(X_sym(:, 1) - x0_sym);
+            for i = 1:N-1
+                next_x  = f_discrete(X_sym(:,i), U_sym(:,i)); % dynamic constraints 
+                eq_constr = vertcat(eq_constr, X_sym(:,i+1)- next_x ); 
+            end            
+
+
             % Inequality constraints (Casadi SX), each entry <= 0
-            
-            ineq_constr = [abs(X_sym(5,:)) -ubx(5), ...
-                abs(U_sym(1, :)) -ubu(1), ... 
-                abs(U_sym(2, :)) -ubu(2), ...
-                U_sym(3, :) -ubu(3), ...
-                -U_sym(3, :) +lbu(3), ... 
-                abs(U_sym(4,:)) -ubu(4)];
+            ineq_constr = vertcat();
+            % ineq_constr = [abs(X_sym(5,:)) -ubx(5), ...
+            %     abs(U_sym(1, :)) -ubu(1), ... 
+            %     abs(U_sym(2, :)) -ubu(2), ...
+            %     U_sym(3, :) -ubu(3), ...
+            %     -U_sym(3, :) +lbu(3), ... 
+            %     abs(U_sym(4,:)) -ubu(4)];
 
             % For box constraints on state and input, overwrite entries of
             % lbx, ubx, lbu, ubu defined above
@@ -137,8 +153,10 @@ classdef NmpcControl < handle
             
             u_init = zeros(4, 1); % Replace this by a better initialization
             % changed to be within contstraints?
-            u_init = [0 0 65 0]; 
+            % u_init = [0 0 63 0]; 
             %potentially change to open loop solution later
+            [u_init,~,~,~] = obj.get_u(zeros(12,1), zeros(4,1));
+            
 
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -155,7 +173,7 @@ classdef NmpcControl < handle
             % Delay compensation: Predict x0 delay timesteps later.
             % Simulate x_ for 'delay' timesteps
             x_ = x0;
-            % ...
+            %...
             
             x0 = x_;
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE

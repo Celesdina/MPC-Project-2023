@@ -1,4 +1,12 @@
 function [x_next] = RK4(X,U,h,f)
+%
+% Inputs : 
+%    X, U current state and input
+%    h    sample period
+%    f    continuous time dynamics f(x,u)
+% Returns
+%    State h seconds in the future
+%
 
 % Runge-Kutta 4 integration taken from exercise 7
    k1 = f(X,         U);
