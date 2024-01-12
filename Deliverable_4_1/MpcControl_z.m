@@ -51,9 +51,7 @@ classdef MpcControl_z < MpcControlBase
             con = [];
             
             % Cost matrices 
-            Q = eye(nx);
-            weights = [[1000 0]; [0 1000]];
-            Q = weights.*Q;
+            Q = diag([1000 1000]);
             R = 0.001*eye(nu); 
 
 

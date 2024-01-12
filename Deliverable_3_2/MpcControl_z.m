@@ -117,8 +117,8 @@ classdef MpcControl_z < MpcControlBase
             % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE
             % You can use the matrices mpc.A, mpc.B, mpc.C and mpc.D
 
-            % obj = 0;
-            % con = [xs == 0, us == 0];
+            obj = 0;
+            con = [xs == 0, us == 0];
 
             Q = eye(1); 
             

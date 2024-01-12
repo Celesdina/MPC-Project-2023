@@ -37,18 +37,12 @@ classdef MpcControl_roll < MpcControlBase
             Hu = [1;-1]; hu = [20;20]; %Pdiff +-20% 
 
             % Tuning
-            Q=eye(nx); 
-            weights = [[1000 0]; [0 1000]]; % 400,200
-            Q = weights.*Q;
-            R=0.1*eye(nu); 
+            Q = diag([10 1000]);
+            R=0.1*eye(nu);
 
-            % % old tuning
-            % Q=200*eye(nx); 
-            % R=0.2*eye(nu);
 
             % Compute terminal weight Qf
             [~,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
-
 
 
             % set the problem constraints and objectives

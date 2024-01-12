@@ -47,44 +47,22 @@ classdef MpcControl_x < MpcControlBase
                 0 0 -1 0; 0 0 0 -1]; 
             f = [100; 0.1745; 100; 100; 100; 0.1745; 100; 100];
             
-            % Tuning
-            Q = eye(nx); 
-            weights = [[1000 0 0 0]; [0 1000 0 0]; [0 0 1000 0];[0 0 0 1000]];
-            Q = weights.*Q;
-            R = 0.01 * eye(nu); %1
 
-            % % old tuning
-            % Q = 1 * eye(nx);
-            % R = 1 * eye(nu);
-            % 
-        
+
+            % Tuning
+            Q = diag([100 1 1 100]);
+            R = 0.1;
+
+
             % Compute terminal weight Qf
             [~,Qf,~] = dlqr(mpc.A,mpc.B,Q,R);
 
 
-            
             % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
             % initializations
             obj = 0;
             con = [];
 
-            % % soft constraints
-            % epsilon = sdpvar(nu,1);
-            % S = 100*eye(nu);
-            % s = 100;
-            % 
-            % % set up optimization problem
-            % obj = (X(:,1)-u_ref)'*Q*(X(:,1)-u_ref) + (U(:,1)-u_ref)'*R*(U(:,1)-u_ref);
-            % con = ((X(:,2)-x_ref) == mpc.A*(X(:,1)-x_ref) + mpc.B*(U(:,1)-u_ref));
-            % con = con + (F*(X(:,1)-x_ref) <= f) + (M*(U(:,1)-u_ref) <= m);
-            % 
-            % for i = 2:N-1
-            %     con = con + ((X(:,i+1)-x_ref) == mpc.A*(X(:,i)-x_ref) + mpc.B*(U(:,i)-u_ref));
-            %     con = con + (F*(X(:,i)-x_ref) <= f + epsilon) + (M*(U(:,i)-u_ref) <= m) + (0<=epsilon); 
-            %     obj = obj + (X(:,i)-x_ref)'*Q*(X(:,i)-x_ref) + (U(:,i)-u_ref)'*R*(U(:,i)-u_ref)...
-            %               + epsilon'*S*epsilon + s*norm(epsilon,1);
-            % end   
-            % obj = obj + (X(:,N)-x_ref)'*Qf*(X(:,N)-x_ref);
 
             % set up optimization problem
             obj = (X(:,1)-u_ref)'*Q*(X(:,1)-u_ref) + (U(:,1)-u_ref)'*R*(U(:,1)-u_ref);
